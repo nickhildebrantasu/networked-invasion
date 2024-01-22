@@ -12,4 +12,7 @@ ACapstoneGameMode::ACapstoneGameMode()
 	{
 		DefaultPawnClass = PlayerPawnBPClass.Class;
 	}
+
+	static ConstructorHelpers::FClassFinder<APlayerController> NetworkPlayerBPClass( TEXT( "/Game/Chat/BP_NetworkPlayerController" ) );
+	if ( NetworkPlayerBPClass.Class != NULL ) PlayerControllerClass = NetworkPlayerBPClass.Class;
 }

@@ -40,6 +40,8 @@ public:
     float Damage;
 
 protected:
+    float size = 10.0f;
+
     virtual void Destroyed() override;
 
     UFUNCTION( Category = "Projectile" )

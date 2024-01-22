@@ -55,6 +55,10 @@ ACapstoneCharacter::ACapstoneCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	FPSCamera = CreateDefaultSubobject<UCameraComponent>( TEXT( "FPSCamera" ) );
+	FPSCamera->bUsePawnControlRotation = true;
+	FPSCamera->SetupAttachment( GetMesh(), FName( "Head" ) );
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
@@ -120,21 +124,22 @@ void ACapstoneCharacter::OnHealthUpdate()
 	//Client-specific functionality
 	if ( IsLocallyControlled() )
 	{
-		FString healthMessage = FString::Printf( TEXT( "You now have %f health remaining." ), CurrentHealth );
-		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );
+		/*FString healthMessage = FString::Printf( TEXT( "You now have %f health remaining." ), CurrentHealth );
+		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );*/
 
 		if ( CurrentHealth <= 0 )
 		{
-			FString deathMessage = FString::Printf( TEXT( "You have been killed." ) );
+			FString deathMessage = FString::Printf( TEXT( "%s has been killed." ), *GetFName().ToString() );
 			GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Red, deathMessage );
+			GetMesh()->SetSimulatePhysics( true );
 		}
 	}
 
 	//Server-specific functionality
 	if ( GetLocalRole() == ROLE_Authority )
 	{
-		FString healthMessage = FString::Printf( TEXT( "%s now has %f health remaining." ), *GetFName().ToString(), CurrentHealth );
-		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );
+		/*FString healthMessage = FString::Printf( TEXT( "%s now has %f health remaining." ), *GetFName().ToString(), CurrentHealth );
+		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );*/
 	}
 
 	//Functions that occur on all machines.
@@ -150,6 +155,9 @@ void ACapstoneCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 {
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
+
+		// Changing the camera view
+		EnhancedInputComponent->BindAction( SelectAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::SwitchCameras );
 		
 		// Jumping
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
@@ -164,6 +172,8 @@ void ACapstoneCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		// Shooting
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Started, this, &ACapstoneCharacter::StartFire );
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::StopFire );
+
+
 	}
 	else
 	{
@@ -176,7 +186,7 @@ void ACapstoneCharacter::Move(const FInputActionValue& Value)
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
-	if (Controller != nullptr)
+	if (Controller != nullptr )
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -189,8 +199,9 @@ void ACapstoneCharacter::Move(const FInputActionValue& Value)
 		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
 		// add movement 
-		AddMovementInput(ForwardDirection, MovementVector.Y);
-		AddMovementInput(RightDirection, MovementVector.X);
+		AddMovementInput( ForwardDirection, MovementVector.Y );
+		//if( FollowCamera->IsActive()) AddMovementInput( RightDirection, MovementVector.X );
+		AddMovementInput( RightDirection, MovementVector.X );
 	}
 }
 
@@ -198,6 +209,21 @@ void ACapstoneCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
+
+	if ( FPSCamera->IsActive() )
+	{
+		// enables head rotation animation
+		yaw += LookAxisVector.X;
+		pitch += LookAxisVector.Y;
+
+		yaw = FMath::Clamp( yaw, -15, 15 ); // left to right head movement
+		pitch = FMath::Clamp( pitch, -20, 15 ); // up and down head movement
+	}
+	else
+	{
+		yaw = 0;
+		pitch = 0;
+	}
 
 	if (Controller != nullptr)
 	{
@@ -237,4 +263,11 @@ void ACapstoneCharacter::HandleFire_Implementation()
 	spawnParameters.Owner = this;
 
 	ANetworkProjectile* spawnedProjectile = GetWorld()->SpawnActor<ANetworkProjectile>( spawnLocation, spawnRotation, spawnParameters );
+}
+
+void ACapstoneCharacter::SwitchCameras()
+{
+	FollowCamera->SetActive( !FollowCamera->IsActive() );
+	FPSCamera->SetActive( !FPSCamera->IsActive() );
+	bUseControllerRotationYaw = FPSCamera->IsActive();
 }
