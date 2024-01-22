@@ -199,7 +199,8 @@ void ACapstoneCharacter::Move(const FInputActionValue& Value)
 
 		// add movement 
 		AddMovementInput( ForwardDirection, MovementVector.Y );
-		if( FollowCamera->IsActive()) AddMovementInput( RightDirection, MovementVector.X );
+		//if( FollowCamera->IsActive()) AddMovementInput( RightDirection, MovementVector.X );
+		AddMovementInput( RightDirection, MovementVector.X );
 	}
 }
 
@@ -215,7 +216,7 @@ void ACapstoneCharacter::Look(const FInputActionValue& Value)
 		pitch += LookAxisVector.Y;
 
 		yaw = FMath::Clamp( yaw, -15, 15 ); // left to right head movement
-		pitch = FMath::Clamp( pitch, -5, 8 ); // up and down head movement
+		pitch = FMath::Clamp( pitch, -20, 15 ); // up and down head movement
 	}
 	else
 	{
