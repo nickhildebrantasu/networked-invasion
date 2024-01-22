@@ -124,21 +124,22 @@ void ACapstoneCharacter::OnHealthUpdate()
 	//Client-specific functionality
 	if ( IsLocallyControlled() )
 	{
-		FString healthMessage = FString::Printf( TEXT( "You now have %f health remaining." ), CurrentHealth );
-		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );
+		/*FString healthMessage = FString::Printf( TEXT( "You now have %f health remaining." ), CurrentHealth );
+		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );*/
 
 		if ( CurrentHealth <= 0 )
 		{
-			FString deathMessage = FString::Printf( TEXT( "You have been killed." ) );
+			FString deathMessage = FString::Printf( TEXT( "%s has been killed." ), *GetFName().ToString() );
 			GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Red, deathMessage );
+			GetMesh()->SetSimulatePhysics( true );
 		}
 	}
 
 	//Server-specific functionality
 	if ( GetLocalRole() == ROLE_Authority )
 	{
-		FString healthMessage = FString::Printf( TEXT( "%s now has %f health remaining." ), *GetFName().ToString(), CurrentHealth );
-		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );
+		/*FString healthMessage = FString::Printf( TEXT( "%s now has %f health remaining." ), *GetFName().ToString(), CurrentHealth );
+		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );*/
 	}
 
 	//Functions that occur on all machines.

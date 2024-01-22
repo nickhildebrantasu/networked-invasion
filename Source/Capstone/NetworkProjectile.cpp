@@ -21,7 +21,7 @@ ANetworkProjectile::ANetworkProjectile()
 
 	//Definition for the SphereComponent that will serve as the Root component for the projectile and its collision.
 	SphereComponent = CreateDefaultSubobject<USphereComponent>( TEXT( "RootComponent" ) );
-	SphereComponent->InitSphereRadius( 37.5f );
+	SphereComponent->InitSphereRadius( size );
 	SphereComponent->SetCollisionProfileName( TEXT( "BlockAllDynamic" ) );
 	RootComponent = SphereComponent;
 
@@ -40,8 +40,8 @@ ANetworkProjectile::ANetworkProjectile()
 	if ( DefaultMesh.Succeeded() )
 	{
 		StaticMesh->SetStaticMesh( DefaultMesh.Object );
-		StaticMesh->SetRelativeLocation( FVector( 0.0f, 0.0f, -37.5f ) );
-		StaticMesh->SetRelativeScale3D( FVector( 0.75f, 0.75f, 0.75f ) );
+		StaticMesh->SetRelativeLocation( FVector( 0.0f, 0.0f, -size ) );
+		StaticMesh->SetRelativeScale3D( FVector( 0.20f, 0.20f, 0.20f ) );
 	}
 
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> DefaultExplosionEffect( TEXT( "/Game/StarterContent/Particles/P_Explosion.P_Explosion" ) );
