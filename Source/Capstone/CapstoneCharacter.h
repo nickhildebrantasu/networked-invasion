@@ -28,8 +28,12 @@ class ACapstoneCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
-	/** FPS camera */
-	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = ( AllowPrivateAccess = "true" ) )
+	/** Camera boom positioning the camera behind the character */
+	UPROPERTY( VisibleAnywhere, BlueprintReadWrite, Category = Camera, meta = ( AllowPrivateAccess = "true" ) )
+	USpringArmComponent* FPSpring;
+
+	///** FPS camera */
+	UPROPERTY( VisibleAnywhere, BlueprintReadWrite, Category = Camera, meta = ( AllowPrivateAccess = "true" ) )
 	UCameraComponent* FPSCamera;
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )

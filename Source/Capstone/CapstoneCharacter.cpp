@@ -57,9 +57,14 @@ ACapstoneCharacter::ACapstoneCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	FPSpring = CreateDefaultSubobject<USpringArmComponent>( TEXT( "FPSpring" ) );
+	FPSpring->SetupAttachment( GetMesh(), FName( "Head" ) );
+	FPSpring->TargetArmLength = 0.0f;
+	FPSpring->bUsePawnControlRotation = true;
+
 	FPSCamera = CreateDefaultSubobject<UCameraComponent>( TEXT( "FPSCamera" ) );
+	FPSCamera->SetupAttachment( FPSpring );
 	FPSCamera->bUsePawnControlRotation = true;
-	FPSCamera->SetupAttachment( GetMesh(), FName( "Head" ) );
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -212,20 +217,12 @@ void ACapstoneCharacter::Look(const FInputActionValue& Value)
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 
-	if ( FPSCamera->IsActive() )
-	{
-		// enables head rotation animation
-		yaw += LookAxisVector.X;
-		pitch += LookAxisVector.Y;
+	// enables head rotation animation
+	yaw += LookAxisVector.X;
+	pitch += LookAxisVector.Y;
 
-		yaw = FMath::Clamp( yaw, -15, 15 ); // left to right head movement
-		pitch = FMath::Clamp( pitch, -20, 15 ); // up and down head movement
-	}
-	else
-	{
-		yaw = 0;
-		pitch = 0;
-	}
+	yaw = FMath::Clamp( yaw, -10, 10 ); // left to right head movement
+	pitch = FMath::Clamp( pitch, -8, 10 ); // up and down head movement
 
 	if (Controller != nullptr)
 	{
