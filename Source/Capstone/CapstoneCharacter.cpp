@@ -23,6 +23,8 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ACapstoneCharacter::ACapstoneCharacter()
 {
+	SetReplicates( true );
+	SetReplicateMovement( true );
 	GetMesh()->SetIsReplicated( true );
 
 	// Set size for collision capsule
@@ -102,6 +104,7 @@ void ACapstoneCharacter::GetLifetimeReplicatedProps( TArray <FLifetimeProperty>&
 
 	//Replicate current health.
 	DOREPLIFETIME( ACapstoneCharacter, CurrentHealth);
+	DOREPLIFETIME( ACapstoneCharacter, bIsRagdoll );
 }
 
 /// Character health and network interactions
@@ -138,7 +141,8 @@ void ACapstoneCharacter::OnHealthUpdate()
 		{
 			FString deathMessage = FString::Printf( TEXT( "%s has been killed." ), *GetFName().ToString() );
 			GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Red, deathMessage );
-			GetMesh()->SetSimulatePhysics( true );
+			OnRep_Ragdoll();
+			GetMesh()->SetSimulatePhysics( bIsRagdoll );
 		}
 	}
 
@@ -153,6 +157,12 @@ void ACapstoneCharacter::OnHealthUpdate()
 	/*
 		Any special functionality that should occur as a result of damage or death should be placed here.
 	*/
+}
+
+void ACapstoneCharacter::OnRep_Ragdoll()
+{
+	bIsRagdoll = true;
+	GetMesh()->SetSimulatePhysics( true );
 }
 
 //////////////////////////////////////////////////////////////////////////

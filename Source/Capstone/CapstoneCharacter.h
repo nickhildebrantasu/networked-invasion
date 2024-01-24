@@ -111,6 +111,12 @@ protected:
 	/** Response to health being updated. Called on the server immediately after modification, and on clients in response to a RepNotify*/
 	void OnHealthUpdate();
 
+	UPROPERTY( ReplicatedUsing = OnRep_Ragdoll )
+	bool bIsRagdoll;
+
+	UFUNCTION()
+	void OnRep_Ragdoll();
+
 	UPROPERTY( EditDefaultsOnly, Category = "Gameplay|Projectile" )
 	TSubclassOf<class ANetworkProjectile > ProjectileClass;
 
