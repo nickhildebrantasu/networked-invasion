@@ -23,6 +23,10 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ACapstoneCharacter::ACapstoneCharacter()
 {
+	SetReplicates( true );
+	SetReplicateMovement( true );
+	GetMesh()->SetIsReplicated( true );
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 		
@@ -55,9 +59,14 @@ ACapstoneCharacter::ACapstoneCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+	FPSpring = CreateDefaultSubobject<USpringArmComponent>( TEXT( "FPSpring" ) );
+	FPSpring->SetupAttachment( GetMesh(), FName( "Head" ) );
+	FPSpring->TargetArmLength = 0.0f;
+	FPSpring->bUsePawnControlRotation = true;
+
 	FPSCamera = CreateDefaultSubobject<UCameraComponent>( TEXT( "FPSCamera" ) );
+	FPSCamera->SetupAttachment( FPSpring );
 	FPSCamera->bUsePawnControlRotation = true;
-	FPSCamera->SetupAttachment( GetMesh(), FName( "Head" ) );
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -95,6 +104,7 @@ void ACapstoneCharacter::GetLifetimeReplicatedProps( TArray <FLifetimeProperty>&
 
 	//Replicate current health.
 	DOREPLIFETIME( ACapstoneCharacter, CurrentHealth);
+	DOREPLIFETIME( ACapstoneCharacter, bIsRagdoll );
 }
 
 /// Character health and network interactions
@@ -131,7 +141,8 @@ void ACapstoneCharacter::OnHealthUpdate()
 		{
 			FString deathMessage = FString::Printf( TEXT( "%s has been killed." ), *GetFName().ToString() );
 			GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Red, deathMessage );
-			GetMesh()->SetSimulatePhysics( true );
+			OnRep_Ragdoll();
+			GetMesh()->SetSimulatePhysics( bIsRagdoll );
 		}
 	}
 
@@ -146,6 +157,12 @@ void ACapstoneCharacter::OnHealthUpdate()
 	/*
 		Any special functionality that should occur as a result of damage or death should be placed here.
 	*/
+}
+
+void ACapstoneCharacter::OnRep_Ragdoll()
+{
+	bIsRagdoll = true;
+	GetMesh()->SetSimulatePhysics( true );
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -210,20 +227,12 @@ void ACapstoneCharacter::Look(const FInputActionValue& Value)
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 
-	if ( FPSCamera->IsActive() )
-	{
-		// enables head rotation animation
-		yaw += LookAxisVector.X;
-		pitch += LookAxisVector.Y;
+	// enables head rotation animation
+	yaw += LookAxisVector.X;
+	pitch += LookAxisVector.Y;
 
-		yaw = FMath::Clamp( yaw, -15, 15 ); // left to right head movement
-		pitch = FMath::Clamp( pitch, -20, 15 ); // up and down head movement
-	}
-	else
-	{
-		yaw = 0;
-		pitch = 0;
-	}
+	yaw = FMath::Clamp( yaw, -10, 10 ); // left to right head movement
+	pitch = FMath::Clamp( pitch, -8, 10 ); // up and down head movement
 
 	if (Controller != nullptr)
 	{
