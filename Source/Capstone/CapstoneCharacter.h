@@ -96,6 +96,13 @@ protected:
 	void Look(const FInputActionValue& Value);
 
 protected:
+	// Weapons the character spawns with
+	UPROPERTY(EditDefaultsOnly, Category = "Configurations")
+	TArray<TSubclassOf<class AWeapon>> DefaultWeapons;
+
+	UFUNCTION()
+	void OnRep_CurrentWeapon( const class AWeapon* OldWeapon );
+
 	/** The player's maximum health. This is the highest value of their health can be. This value is a value of the player's health, which starts at when spawned.*/
 	UPROPERTY( EditDefaultsOnly, Category = "Health" )
 	float MaxHealth;
@@ -157,5 +164,14 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, Category = "State")
+	TArray<class AWeapon*> Weapons;
+
+	UPROPERTY( VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentWeapon, Category = "State" )
+	class AWeapon* CurrentWeapon;
+
+	UPROPERTY( VisibleInstanceOnly, BlueprintReadWrite, Category = "State" )
+	int32 CurrentIndex = 0;
 };
 
