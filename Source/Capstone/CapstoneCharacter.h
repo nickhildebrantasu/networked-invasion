@@ -58,6 +58,12 @@ class ACapstoneCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
+	UInputAction* NextToolAction;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
+	UInputAction* PrevToolAction;
+
 	/** Fire Input Action */
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
 	UInputAction* FireAction;
@@ -87,6 +93,10 @@ public:
 	/** Event for taking damage. Overridden from APawn.*/
 	UFUNCTION( BlueprintCallable, Category = "Health" )
 	float TakeDamage( float DamageTaken, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser ) override;
+
+	UFUNCTION( BlueprintCallable, Category = "Character" )
+	void Equip( const int32 index );
+
 protected:
 
 	/** Called for movement input */
@@ -95,6 +105,9 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
+	void NextTool();
+	void PrevTool();
+
 protected:
 	// Weapons the character spawns with
 	UPROPERTY(EditDefaultsOnly, Category = "Configurations")
@@ -102,6 +115,10 @@ protected:
 
 	UFUNCTION()
 	void OnRep_CurrentWeapon( const class AWeapon* OldWeapon );
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetWeapon( class AWeapon* newWeapon );
+	void Server_SetWeapon_Implementation( class AWeapon* newWeapon );
 
 	/** The player's maximum health. This is the highest value of their health can be. This value is a value of the player's health, which starts at when spawned.*/
 	UPROPERTY( EditDefaultsOnly, Category = "Health" )

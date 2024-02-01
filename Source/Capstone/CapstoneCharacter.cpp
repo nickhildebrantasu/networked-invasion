@@ -26,14 +26,14 @@ ACapstoneCharacter::ACapstoneCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-		
-	// Don't rotate when the controller rotates. Let that just affect the camera.
+
+	// The controller only rotates the yaw
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->bOrientRotationToMovement = false; // Character does not rotate to movement
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
@@ -83,6 +83,8 @@ void ACapstoneCharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+
+	bUseControllerRotationYaw = true;
 
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
@@ -134,15 +136,15 @@ void ACapstoneCharacter::OnRep_CurrentWeapon( const AWeapon* OldWeapon )
 			const FTransform& PlacementTransform = CurrentWeapon->PlacementTransform * GetMesh()->GetSocketTransform( FName( "weapon_r" ) );
 			CurrentWeapon->SetActorTransform( PlacementTransform, false, nullptr, ETeleportType::TeleportPhysics);
 			CurrentWeapon->AttachToComponent( GetMesh(), FAttachmentTransformRules::KeepWorldTransform, FName( "weapon_r" ) );
-
-			CurrentWeapon->Mesh->SetVisibility( true );
 			CurrentWeapon->CurrentOwner = this;
 		}
+
+		CurrentWeapon->Mesh->SetVisibility( true );
 	}
 
 	if ( OldWeapon )
 	{
-
+		OldWeapon->Mesh->SetVisibility( false );
 	}
 }
 
@@ -225,11 +227,13 @@ void ACapstoneCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::Look);
 
+		// Weapon swapping
+		EnhancedInputComponent->BindAction( NextToolAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::NextTool );
+		EnhancedInputComponent->BindAction( PrevToolAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::PrevTool );
+
 		// Shooting
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Started, this, &ACapstoneCharacter::StartFire );
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::StopFire );
-
-
 	}
 	else
 	{
@@ -281,6 +285,42 @@ void ACapstoneCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
+void ACapstoneCharacter::NextTool()
+{
+	const int32 index = Weapons.IsValidIndex( CurrentIndex + 1 ) ? CurrentIndex + 1 : 0;
+	Equip( index );
+}
+
+void ACapstoneCharacter::PrevTool()
+{
+	const int32 index = Weapons.IsValidIndex( CurrentIndex - 1 ) ? CurrentIndex - 1 : Weapons.Num() - 1;
+	Equip( index );
+}
+
+void ACapstoneCharacter::Equip( const int32 index )
+{
+	if ( !Weapons.IsValidIndex( index ) || CurrentWeapon == Weapons[index] ) return;
+
+	if ( IsLocallyControlled() )
+	{
+		CurrentIndex = index;
+		const AWeapon* OldWeapon = CurrentWeapon;
+		CurrentWeapon = Weapons[index];
+		OnRep_CurrentWeapon( OldWeapon );
+	}
+	else if ( !HasAuthority() )
+	{
+		Server_SetWeapon( Weapons[index] );
+	}
+}
+
+void ACapstoneCharacter::Server_SetWeapon_Implementation( AWeapon* newWeapon )
+{
+	const AWeapon* OldWeapon = CurrentWeapon;
+	CurrentWeapon = newWeapon;
+	OnRep_CurrentWeapon( OldWeapon );
+}
+
 void ACapstoneCharacter::StartFire( const FInputActionValue& Value )
 {
 	const bool CurrentValue = Value.Get<bool>();
@@ -317,5 +357,4 @@ void ACapstoneCharacter::SwitchCameras()
 {
 	FollowCamera->SetActive( !FollowCamera->IsActive() );
 	FPSCamera->SetActive( !FPSCamera->IsActive() );
-	bUseControllerRotationYaw = FPSCamera->IsActive();
 }
