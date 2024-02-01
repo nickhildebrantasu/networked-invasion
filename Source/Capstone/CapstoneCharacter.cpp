@@ -24,6 +24,8 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ACapstoneCharacter::ACapstoneCharacter()
 {
+	GetMesh()->SetTickGroup( ETickingGroup::TG_PostUpdateWork );
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -49,17 +51,16 @@ ACapstoneCharacter::ACapstoneCharacter()
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
-	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
+	CameraBoom->bUsePawnControlRotation = false; // Rotate the arm based on the controller
 
 	// Create a follow camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
-	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+	FollowCamera->bUsePawnControlRotation = true; // Camera does not rotate relative to arm
 
 	FPSpring = CreateDefaultSubobject<USpringArmComponent>( TEXT( "FPSpring" ) );
 	FPSpring->SetupAttachment( GetMesh(), FName( "Head" ) );
 	FPSpring->TargetArmLength = 0.0f;
-	FPSpring->bUsePawnControlRotation = true;
 
 	FPSCamera = CreateDefaultSubobject<UCameraComponent>( TEXT( "FPSCamera" ) );
 	FPSCamera->SetupAttachment( FPSpring );
@@ -146,6 +147,8 @@ void ACapstoneCharacter::OnRep_CurrentWeapon( const AWeapon* OldWeapon )
 	{
 		OldWeapon->Mesh->SetVisibility( false );
 	}
+
+	CurrentWeaponChangeDelegate.Broadcast( CurrentWeapon, OldWeapon );
 }
 
 /// Character health and network interactions
@@ -270,13 +273,6 @@ void ACapstoneCharacter::Look(const FInputActionValue& Value)
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
 
-	// enables head rotation animation
-	yaw += LookAxisVector.X;
-	pitch += LookAxisVector.Y;
-
-	yaw = FMath::Clamp( yaw, -10, 10 ); // left to right head movement
-	pitch = FMath::Clamp( pitch, -8, 10 ); // up and down head movement
-
 	if (Controller != nullptr)
 	{
 		// add yaw and pitch input to controller
@@ -351,6 +347,12 @@ void ACapstoneCharacter::HandleFire_Implementation()
 	spawnParameters.Owner = this;
 
 	ANetworkProjectile* spawnedProjectile = GetWorld()->SpawnActor<ANetworkProjectile>( spawnLocation, spawnRotation, spawnParameters );
+}
+
+UCameraComponent* ACapstoneCharacter::GetCamera()
+{
+	if ( FollowCamera->IsActive() ) return FollowCamera;
+	else return FPSCamera;
 }
 
 void ACapstoneCharacter::SwitchCameras()

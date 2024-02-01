@@ -14,6 +14,7 @@ class UInputAction;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FCurrentWeaponChangeDelegate, class AWeapon*, CurrentWeapon, const class AWeapon*, OldWeapon );
 
 UCLASS(config=Game)
 class ACapstoneCharacter : public ACharacter
@@ -25,7 +26,7 @@ class ACapstoneCharacter : public ACharacter
 	USpringArmComponent* CameraBoom;
 
 	/** Follow camera */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
 	/** Camera boom positioning the camera behind the character */
@@ -35,12 +36,6 @@ class ACapstoneCharacter : public ACharacter
 	///** FPS camera */
 	UPROPERTY( VisibleAnywhere, BlueprintReadWrite, Category = Camera, meta = ( AllowPrivateAccess = "true" ) )
 	UCameraComponent* FPSCamera;
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
-	float pitch;
-
-	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
-	float yaw;
 	
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -181,12 +176,17 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE class UCameraComponent* GetFPSCamera() const { return FPSCamera; }
+	virtual UCameraComponent* GetCamera();
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, Category = "State")
 	TArray<class AWeapon*> Weapons;
 
 	UPROPERTY( VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentWeapon, Category = "State" )
 	class AWeapon* CurrentWeapon;
+
+	UPROPERTY( BlueprintAssignable, Category="Delegates")
+	FCurrentWeaponChangeDelegate CurrentWeaponChangeDelegate; // when weapon is changed
 
 	UPROPERTY( VisibleInstanceOnly, BlueprintReadWrite, Category = "State" )
 	int32 CurrentIndex = 0;
