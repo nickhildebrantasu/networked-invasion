@@ -17,17 +17,15 @@
 #include "Weapon.h"
 #include "NetworkProjectile.h"
 
-DEFINE_LOG_CATEGORY(LogTemplateCharacter);
+DEFINE_LOG_CATEGORY( LogTemplateCharacter );
 
 //////////////////////////////////////////////////////////////////////////
 // ACapstoneCharacter
 
 ACapstoneCharacter::ACapstoneCharacter()
 {
-	GetMesh()->SetTickGroup( ETickingGroup::TG_PostUpdateWork );
-
 	// Set size for collision capsule
-	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+	GetCapsuleComponent()->InitCapsuleSize( 42.f, 96.0f );
 
 	// The controller only rotates the yaw
 	bUseControllerRotationPitch = false;
@@ -36,7 +34,7 @@ ACapstoneCharacter::ACapstoneCharacter()
 
 	// Configure character movement
 	GetCharacterMovement()->bOrientRotationToMovement = false; // Character does not rotate to movement
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
+	GetCharacterMovement()->RotationRate = FRotator( 0.0f, 500.0f, 0.0f ); // ...at this rotation rate
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
 	// instead of recompiling to adjust them
@@ -48,19 +46,20 @@ ACapstoneCharacter::ACapstoneCharacter()
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->SetupAttachment(RootComponent);
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>( TEXT( "CameraBoom" ) );
+	CameraBoom->SetupAttachment( RootComponent );
 	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
-	CameraBoom->bUsePawnControlRotation = false; // Rotate the arm based on the controller
+	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
 
 	// Create a follow camera
-	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
+	FollowCamera = CreateDefaultSubobject<UCameraComponent>( TEXT( "FollowCamera" ) );
+	FollowCamera->SetupAttachment( CameraBoom, USpringArmComponent::SocketName ); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = true; // Camera does not rotate relative to arm
 
 	FPSpring = CreateDefaultSubobject<USpringArmComponent>( TEXT( "FPSpring" ) );
 	FPSpring->SetupAttachment( GetMesh(), FName( "Head" ) );
 	FPSpring->TargetArmLength = 0.0f;
+	FPSpring->bUsePawnControlRotation = true;
 
 	FPSCamera = CreateDefaultSubobject<UCameraComponent>( TEXT( "FPSCamera" ) );
 	FPSCamera->SetupAttachment( FPSpring );
@@ -272,6 +271,13 @@ void ACapstoneCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
+
+	// enables head rotation animation
+	yaw += LookAxisVector.X;
+	pitch += LookAxisVector.Y;
+
+	yaw = FMath::Clamp( yaw, -10, 10 ); // left to right head movement
+	pitch = FMath::Clamp( pitch, -8, 10 ); // up and down head movement
 
 	if (Controller != nullptr)
 	{

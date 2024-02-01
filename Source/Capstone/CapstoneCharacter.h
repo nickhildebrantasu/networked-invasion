@@ -36,6 +36,12 @@ class ACapstoneCharacter : public ACharacter
 	///** FPS camera */
 	UPROPERTY( VisibleAnywhere, BlueprintReadWrite, Category = Camera, meta = ( AllowPrivateAccess = "true" ) )
 	UCameraComponent* FPSCamera;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
+	float pitch;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
+	float yaw;
 	
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
