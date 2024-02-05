@@ -236,6 +236,9 @@ void ACapstoneCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		// Shooting
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Started, this, &ACapstoneCharacter::StartFire );
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::StopFire );
+
+		// Sprinting
+		EnhancedInputComponent->BindAction( SprintAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::ToggleSprint );
 	}
 	else
 	{
@@ -291,6 +294,11 @@ void ACapstoneCharacter::NextTool()
 {
 	const int32 index = Weapons.IsValidIndex( CurrentIndex + 1 ) ? CurrentIndex + 1 : 0;
 	Equip( index );
+}
+
+void ACapstoneCharacter::ToggleSprint()
+{
+
 }
 
 void ACapstoneCharacter::PrevTool()

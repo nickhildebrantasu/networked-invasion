@@ -73,6 +73,10 @@ class ACapstoneCharacter : public ACharacter
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
 	UInputAction* SelectAction;
 
+	/** Sprint Input Action */
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
+	UInputAction* SprintAction;
+
 public:
 
 	ACapstoneCharacter();
@@ -105,6 +109,9 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+	/** Toggle Sprint */
+	void ToggleSprint();
 
 	void NextTool();
 	void PrevTool();
