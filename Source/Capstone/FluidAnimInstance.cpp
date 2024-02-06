@@ -1,9 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Camera/CameraComponent.h"
-
 #include "FluidAnimInstance.h"
 #include "CapstoneCharacter.h"
+
+#include "Camera/CameraComponent.h"
 
 UFluidAnimInstance::UFluidAnimInstance()
 {
