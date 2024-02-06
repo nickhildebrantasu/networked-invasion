@@ -14,7 +14,6 @@
 #include "Net/UnrealNetwork.h"
 #include "Engine/Engine.h"
 
-#include "Weapon.h"
 #include "NetworkProjectile.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -24,6 +23,10 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ACapstoneCharacter::ACapstoneCharacter()
 {
+	SetReplicates( true );
+	SetReplicateMovement( true );
+	GetMesh()->SetIsReplicated( true );
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 		
@@ -92,25 +95,6 @@ void ACapstoneCharacter::BeginPlay()
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
 		}
 	}
-
-	if ( HasAuthority() )
-	{
-		for ( const TSubclassOf<AWeapon>& WeaponClass : DefaultWeapons )
-		{
-			if ( !WeaponClass ) continue;
-
-			FActorSpawnParameters Params;
-			Params.Owner = this;
-
-			AWeapon* SpawnedWeapon = GetWorld()->SpawnActor<AWeapon>( WeaponClass, Params );
-			const int32 index = Weapons.Add( SpawnedWeapon );
-			if ( index == CurrentIndex )
-			{
-				CurrentWeapon = SpawnedWeapon;
-				OnRep_CurrentWeapon( nullptr );
-			}
-		}
-	}
 }
 
 // For the character networking
@@ -120,30 +104,7 @@ void ACapstoneCharacter::GetLifetimeReplicatedProps( TArray <FLifetimeProperty>&
 
 	//Replicate current health.
 	DOREPLIFETIME( ACapstoneCharacter, CurrentHealth);
-	DOREPLIFETIME_CONDITION( ACapstoneCharacter, Weapons, COND_None );
-	DOREPLIFETIME_CONDITION( ACapstoneCharacter, CurrentWeapon, COND_None );
 	DOREPLIFETIME( ACapstoneCharacter, bIsRagdoll );
-}
-
-void ACapstoneCharacter::OnRep_CurrentWeapon( const AWeapon* OldWeapon )
-{
-	if ( CurrentWeapon )
-	{
-		if ( !CurrentWeapon->CurrentOwner )
-		{
-			const FTransform& PlacementTransform = CurrentWeapon->PlacementTransform * GetMesh()->GetSocketTransform( FName( "weapon_r" ) );
-			CurrentWeapon->SetActorTransform( PlacementTransform, false, nullptr, ETeleportType::TeleportPhysics);
-			CurrentWeapon->AttachToComponent( GetMesh(), FAttachmentTransformRules::KeepWorldTransform, FName( "weapon_r" ) );
-
-			CurrentWeapon->Mesh->SetVisibility( true );
-			CurrentWeapon->CurrentOwner = this;
-		}
-	}
-
-	if ( OldWeapon )
-	{
-
-	}
 }
 
 /// Character health and network interactions
