@@ -14,30 +14,27 @@
 #include "Net/UnrealNetwork.h"
 #include "Engine/Engine.h"
 
+#include "Weapon.h"
 #include "NetworkProjectile.h"
 
-DEFINE_LOG_CATEGORY(LogTemplateCharacter);
+DEFINE_LOG_CATEGORY( LogTemplateCharacter );
 
 //////////////////////////////////////////////////////////////////////////
 // ACapstoneCharacter
 
 ACapstoneCharacter::ACapstoneCharacter()
 {
-	SetReplicates( true );
-	SetReplicateMovement( true );
-	GetMesh()->SetIsReplicated( true );
-
 	// Set size for collision capsule
-	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-		
-	// Don't rotate when the controller rotates. Let that just affect the camera.
+	GetCapsuleComponent()->InitCapsuleSize( 42.f, 96.0f );
+
+	// The controller only rotates the yaw
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
 	// Configure character movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
-	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
+	GetCharacterMovement()->bOrientRotationToMovement = false; // Character does not rotate to movement
+	GetCharacterMovement()->RotationRate = FRotator( 0.0f, 500.0f, 0.0f ); // ...at this rotation rate
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
 	// instead of recompiling to adjust them
@@ -49,15 +46,15 @@ ACapstoneCharacter::ACapstoneCharacter()
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
-	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
-	CameraBoom->SetupAttachment(RootComponent);
+	CameraBoom = CreateDefaultSubobject<USpringArmComponent>( TEXT( "CameraBoom" ) );
+	CameraBoom->SetupAttachment( RootComponent );
 	CameraBoom->TargetArmLength = 400.0f; // The camera follows at this distance behind the character	
 	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
 
 	// Create a follow camera
-	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
-	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
-	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+	FollowCamera = CreateDefaultSubobject<UCameraComponent>( TEXT( "FollowCamera" ) );
+	FollowCamera->SetupAttachment( CameraBoom, USpringArmComponent::SocketName ); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
+	FollowCamera->bUsePawnControlRotation = true; // Camera does not rotate relative to arm
 
 	FPSpring = CreateDefaultSubobject<USpringArmComponent>( TEXT( "FPSpring" ) );
 	FPSpring->SetupAttachment( GetMesh(), FName( "Head" ) );
@@ -87,12 +84,33 @@ void ACapstoneCharacter::BeginPlay()
 	// Call the base class  
 	Super::BeginPlay();
 
+	bUseControllerRotationYaw = true;
+
 	//Add Input Mapping Context
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
+		}
+	}
+
+	if ( HasAuthority() )
+	{
+		for ( const TSubclassOf<AWeapon>& WeaponClass : DefaultWeapons )
+		{
+			if ( !WeaponClass ) continue;
+
+			FActorSpawnParameters Params;
+			Params.Owner = this;
+
+			AWeapon* SpawnedWeapon = GetWorld()->SpawnActor<AWeapon>( WeaponClass, Params );
+			const int32 index = Weapons.Add( SpawnedWeapon );
+			if ( index == CurrentIndex )
+			{
+				CurrentWeapon = SpawnedWeapon;
+				OnRep_CurrentWeapon( nullptr );
+			}
 		}
 	}
 }
@@ -104,7 +122,32 @@ void ACapstoneCharacter::GetLifetimeReplicatedProps( TArray <FLifetimeProperty>&
 
 	//Replicate current health.
 	DOREPLIFETIME( ACapstoneCharacter, CurrentHealth);
+	DOREPLIFETIME_CONDITION( ACapstoneCharacter, Weapons, COND_None );
+	DOREPLIFETIME_CONDITION( ACapstoneCharacter, CurrentWeapon, COND_None );
 	DOREPLIFETIME( ACapstoneCharacter, bIsRagdoll );
+}
+
+void ACapstoneCharacter::OnRep_CurrentWeapon( const AWeapon* OldWeapon )
+{
+	if ( CurrentWeapon )
+	{
+		if ( !CurrentWeapon->CurrentOwner )
+		{
+			const FTransform& PlacementTransform = CurrentWeapon->PlacementTransform * GetMesh()->GetSocketTransform( FName( "weapon_r" ) );
+			CurrentWeapon->SetActorTransform( PlacementTransform, false, nullptr, ETeleportType::TeleportPhysics);
+			CurrentWeapon->AttachToComponent( GetMesh(), FAttachmentTransformRules::KeepWorldTransform, FName( "weapon_r" ) );
+			CurrentWeapon->CurrentOwner = this;
+		}
+
+		CurrentWeapon->Mesh->SetVisibility( true );
+	}
+
+	if ( OldWeapon )
+	{
+		OldWeapon->Mesh->SetVisibility( false );
+	}
+
+	CurrentWeaponChangeDelegate.Broadcast( CurrentWeapon, OldWeapon );
 }
 
 /// Character health and network interactions
@@ -186,11 +229,16 @@ void ACapstoneCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::Look);
 
+		// Weapon swapping
+		EnhancedInputComponent->BindAction( NextToolAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::NextTool );
+		EnhancedInputComponent->BindAction( PrevToolAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::PrevTool );
+
 		// Shooting
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Started, this, &ACapstoneCharacter::StartFire );
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::StopFire );
 
-
+		// Sprinting
+		EnhancedInputComponent->BindAction( SprintAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::ToggleSprint );
 	}
 	else
 	{
@@ -242,6 +290,47 @@ void ACapstoneCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
+void ACapstoneCharacter::NextTool()
+{
+	const int32 index = Weapons.IsValidIndex( CurrentIndex + 1 ) ? CurrentIndex + 1 : 0;
+	Equip( index );
+}
+
+void ACapstoneCharacter::ToggleSprint()
+{
+
+}
+
+void ACapstoneCharacter::PrevTool()
+{
+	const int32 index = Weapons.IsValidIndex( CurrentIndex - 1 ) ? CurrentIndex - 1 : Weapons.Num() - 1;
+	Equip( index );
+}
+
+void ACapstoneCharacter::Equip( const int32 index )
+{
+	if ( !Weapons.IsValidIndex( index ) || CurrentWeapon == Weapons[index] ) return;
+
+	if ( IsLocallyControlled() )
+	{
+		CurrentIndex = index;
+		const AWeapon* OldWeapon = CurrentWeapon;
+		CurrentWeapon = Weapons[index];
+		OnRep_CurrentWeapon( OldWeapon );
+	}
+	else if ( !HasAuthority() )
+	{
+		Server_SetWeapon( Weapons[index] );
+	}
+}
+
+void ACapstoneCharacter::Server_SetWeapon_Implementation( AWeapon* newWeapon )
+{
+	const AWeapon* OldWeapon = CurrentWeapon;
+	CurrentWeapon = newWeapon;
+	OnRep_CurrentWeapon( OldWeapon );
+}
+
 void ACapstoneCharacter::StartFire( const FInputActionValue& Value )
 {
 	const bool CurrentValue = Value.Get<bool>();
@@ -274,9 +363,14 @@ void ACapstoneCharacter::HandleFire_Implementation()
 	ANetworkProjectile* spawnedProjectile = GetWorld()->SpawnActor<ANetworkProjectile>( spawnLocation, spawnRotation, spawnParameters );
 }
 
+UCameraComponent* ACapstoneCharacter::GetCamera()
+{
+	if ( FollowCamera->IsActive() ) return FollowCamera;
+	else return FPSCamera;
+}
+
 void ACapstoneCharacter::SwitchCameras()
 {
 	FollowCamera->SetActive( !FollowCamera->IsActive() );
 	FPSCamera->SetActive( !FPSCamera->IsActive() );
-	bUseControllerRotationYaw = FPSCamera->IsActive();
 }

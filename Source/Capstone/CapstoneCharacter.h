@@ -14,6 +14,7 @@ class UInputAction;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams( FCurrentWeaponChangeDelegate, class AWeapon*, CurrentWeapon, const class AWeapon*, OldWeapon );
 
 UCLASS(config=Game)
 class ACapstoneCharacter : public ACharacter
@@ -25,7 +26,7 @@ class ACapstoneCharacter : public ACharacter
 	USpringArmComponent* CameraBoom;
 
 	/** Follow camera */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
 	/** Camera boom positioning the camera behind the character */
@@ -58,6 +59,12 @@ class ACapstoneCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
+	UInputAction* NextToolAction;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
+	UInputAction* PrevToolAction;
+
 	/** Fire Input Action */
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
 	UInputAction* FireAction;
@@ -65,6 +72,10 @@ class ACapstoneCharacter : public ACharacter
 	/** Select Input Action */
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
 	UInputAction* SelectAction;
+
+	/** Sprint Input Action */
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
+	UInputAction* SprintAction;
 
 public:
 
@@ -87,6 +98,10 @@ public:
 	/** Event for taking damage. Overridden from APawn.*/
 	UFUNCTION( BlueprintCallable, Category = "Health" )
 	float TakeDamage( float DamageTaken, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser ) override;
+
+	UFUNCTION( BlueprintCallable, Category = "Character" )
+	void Equip( const int32 index );
+
 protected:
 
 	/** Called for movement input */
@@ -95,7 +110,24 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
+	/** Toggle Sprint */
+	void ToggleSprint();
+
+	void NextTool();
+	void PrevTool();
+
 protected:
+	// Weapons the character spawns with
+	UPROPERTY(EditDefaultsOnly, Category = "Configurations")
+	TArray<TSubclassOf<class AWeapon>> DefaultWeapons;
+
+	UFUNCTION()
+	void OnRep_CurrentWeapon( const class AWeapon* OldWeapon );
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetWeapon( class AWeapon* newWeapon );
+	void Server_SetWeapon_Implementation( class AWeapon* newWeapon );
+
 	/** The player's maximum health. This is the highest value of their health can be. This value is a value of the player's health, which starts at when spawned.*/
 	UPROPERTY( EditDefaultsOnly, Category = "Health" )
 	float MaxHealth;
@@ -157,5 +189,19 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE class UCameraComponent* GetFPSCamera() const { return FPSCamera; }
+	virtual UCameraComponent* GetCamera();
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, Category = "State")
+	TArray<class AWeapon*> Weapons;
+
+	UPROPERTY( VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentWeapon, Category = "State" )
+	class AWeapon* CurrentWeapon;
+
+	UPROPERTY( BlueprintAssignable, Category="Delegates")
+	FCurrentWeaponChangeDelegate CurrentWeaponChangeDelegate; // when weapon is changed
+
+	UPROPERTY( VisibleInstanceOnly, BlueprintReadWrite, Category = "State" )
+	int32 CurrentIndex = 0;
 };
 
