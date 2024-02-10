@@ -270,6 +270,11 @@ void ACapstoneCharacter::Move(const FInputActionValue& Value)
 	}
 }
 
+void ACapstoneCharacter::ToggleSprint()
+{
+
+}
+
 void ACapstoneCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
@@ -296,11 +301,6 @@ void ACapstoneCharacter::NextTool()
 	Equip( index );
 }
 
-void ACapstoneCharacter::ToggleSprint()
-{
-
-}
-
 void ACapstoneCharacter::PrevTool()
 {
 	const int32 index = Weapons.IsValidIndex( CurrentIndex - 1 ) ? CurrentIndex - 1 : Weapons.Num() - 1;
@@ -309,6 +309,10 @@ void ACapstoneCharacter::PrevTool()
 
 void ACapstoneCharacter::Equip( const int32 index )
 {
+	if(EquippingAnimations[index]) PlayAnimMontage( EquippingAnimations[index] );
+
+	//GetMesh()->PlayAnimation()
+
 	if ( !Weapons.IsValidIndex( index ) || CurrentWeapon == Weapons[index] ) return;
 
 	if ( IsLocallyControlled() )
