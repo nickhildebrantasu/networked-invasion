@@ -229,16 +229,18 @@ void ACapstoneCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::Look);
 
-		// Weapon swapping
-		EnhancedInputComponent->BindAction( NextToolAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::NextTool );
-		EnhancedInputComponent->BindAction( PrevToolAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::PrevTool );
 
 		// Shooting
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Started, this, &ACapstoneCharacter::StartFire );
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::StopFire );
 
 		// Sprinting
-		EnhancedInputComponent->BindAction( SprintAction, ETriggerEvent::Triggered, this, &ACapstoneCharacter::ToggleSprint );
+		EnhancedInputComponent->BindAction( SprintAction, ETriggerEvent::Started, this, &ACapstoneCharacter::EnableSprint );
+		EnhancedInputComponent->BindAction( SprintAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::DisableSprint );
+
+		// Aiming
+		EnhancedInputComponent->BindAction( AimAction, ETriggerEvent::Started, this, &ACapstoneCharacter::EnableAim );
+		EnhancedInputComponent->BindAction( AimAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::DisableAim );
 	}
 	else
 	{
@@ -270,9 +272,14 @@ void ACapstoneCharacter::Move(const FInputActionValue& Value)
 	}
 }
 
-void ACapstoneCharacter::ToggleSprint()
+void ACapstoneCharacter::EnableSprint()
 {
+	GetCharacterMovement()->MaxWalkSpeed = 500.0f;
+}
 
+void ACapstoneCharacter::DisableSprint()
+{
+	GetCharacterMovement()->MaxWalkSpeed = 150.0f;
 }
 
 void ACapstoneCharacter::Look(const FInputActionValue& Value)
@@ -337,7 +344,7 @@ void ACapstoneCharacter::Server_SetWeapon_Implementation( AWeapon* newWeapon )
 
 void ACapstoneCharacter::StartFire( const FInputActionValue& Value )
 {
-	const bool CurrentValue = Value.Get<bool>();
+	/*const bool CurrentValue = Value.Get<bool>();
 
 	if ( CurrentValue ) { UE_LOG( LogTemp, Warning, TEXT( "Left Mouse Clicked" ) ); }
 
@@ -347,7 +354,7 @@ void ACapstoneCharacter::StartFire( const FInputActionValue& Value )
 		UWorld* World = GetWorld();
 		World->GetTimerManager().SetTimer( FiringTimer, this, &ACapstoneCharacter::StopFire, FireRate, false );
 		HandleFire();
-	}
+	}*/
 }
 
 void ACapstoneCharacter::StopFire()
@@ -357,14 +364,30 @@ void ACapstoneCharacter::StopFire()
 
 void ACapstoneCharacter::HandleFire_Implementation()
 {
-	FVector spawnLocation = GetActorLocation() + ( GetActorRotation().Vector() * 100.0f ) + ( GetActorUpVector() * 50.0f );
+	/*FVector spawnLocation = GetActorLocation() + ( GetActorRotation().Vector() * 100.0f ) + ( GetActorUpVector() * 50.0f );
 	FRotator spawnRotation = GetActorRotation();
 
 	FActorSpawnParameters spawnParameters;
 	spawnParameters.Instigator = GetInstigator();
 	spawnParameters.Owner = this;
 
-	ANetworkProjectile* spawnedProjectile = GetWorld()->SpawnActor<ANetworkProjectile>( spawnLocation, spawnRotation, spawnParameters );
+	ANetworkProjectile* spawnedProjectile = GetWorld()->SpawnActor<ANetworkProjectile>( spawnLocation, spawnRotation, spawnParameters );*/
+}
+
+void ACapstoneCharacter::EnableAim()
+{
+	bIsAiming = true;
+	CameraBoom->TargetArmLength = 100.0f;
+	CameraBoom->SocketOffset.Z = 60.0f;
+	FPSpring->SocketOffset.Z = -5.0f;
+}
+
+void ACapstoneCharacter::DisableAim()
+{
+	bIsAiming = false;
+	CameraBoom->TargetArmLength = 240.0f;
+	CameraBoom->SocketOffset.Z = 50.0f;
+	FPSpring->SocketOffset.Z = 0.0f;
 }
 
 UCameraComponent* ACapstoneCharacter::GetCamera()

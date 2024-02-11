@@ -45,6 +45,9 @@ class ACapstoneCharacter : public ACharacter
 
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
 	float yaw;
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
+	bool bIsAiming;
 	
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -71,6 +74,9 @@ class ACapstoneCharacter : public ACharacter
 	/** Fire Input Action */
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
 	UInputAction* FireAction;
+
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
+	UInputAction* AimAction;
 
 	/** Select Input Action */
 	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = Input, meta = ( AllowPrivateAccess = "true" ) )
@@ -113,8 +119,12 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 
+	void EnableAim();
+	void DisableAim();
+
 	/** Toggle Sprint */
-	void ToggleSprint();
+	void EnableSprint();
+	void DisableSprint();
 
 	void NextTool();
 	void PrevTool();
