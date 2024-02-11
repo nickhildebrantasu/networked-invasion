@@ -234,13 +234,13 @@ void ACapstoneCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Started, this, &ACapstoneCharacter::StartFire );
 		EnhancedInputComponent->BindAction( FireAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::StopFire );
 
-		// Sprinting
-		EnhancedInputComponent->BindAction( SprintAction, ETriggerEvent::Started, this, &ACapstoneCharacter::EnableSprint );
-		EnhancedInputComponent->BindAction( SprintAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::DisableSprint );
+		//// Sprinting
+		//EnhancedInputComponent->BindAction( SprintAction, ETriggerEvent::Started, this, &ACapstoneCharacter::EnableSprint );
+		//EnhancedInputComponent->BindAction( SprintAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::DisableSprint );
 
 		// Aiming
-		EnhancedInputComponent->BindAction( AimAction, ETriggerEvent::Started, this, &ACapstoneCharacter::EnableAim );
-		EnhancedInputComponent->BindAction( AimAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::DisableAim );
+		/*EnhancedInputComponent->BindAction( AimAction, ETriggerEvent::Started, this, &ACapstoneCharacter::EnableAim );
+		EnhancedInputComponent->BindAction( AimAction, ETriggerEvent::Completed, this, &ACapstoneCharacter::DisableAim );*/
 	}
 	else
 	{
