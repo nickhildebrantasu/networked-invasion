@@ -69,8 +69,8 @@ ACapstoneCharacter::ACapstoneCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
 	//Initialize the player's Health
-	MaxHealth = 100.0f;
-	CurrentHealth = MaxHealth;
+	//MaxHealth = 100.0f;
+	//CurrentHealth = MaxHealth;
 
 	//Initialize projectile class
 	ProjectileClass = ANetworkProjectile::StaticClass();
@@ -121,10 +121,10 @@ void ACapstoneCharacter::GetLifetimeReplicatedProps( TArray <FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps( OutLifetimeProps );
 
 	//Replicate current health.
-	DOREPLIFETIME( ACapstoneCharacter, CurrentHealth);
+	//DOREPLIFETIME( ACapstoneCharacter, CurrentHealth);
 	DOREPLIFETIME_CONDITION( ACapstoneCharacter, Weapons, COND_None );
 	DOREPLIFETIME_CONDITION( ACapstoneCharacter, CurrentWeapon, COND_None );
-	DOREPLIFETIME( ACapstoneCharacter, bIsRagdoll );
+	//DOREPLIFETIME( ACapstoneCharacter, bIsRagdoll );
 }
 
 void ACapstoneCharacter::OnRep_CurrentWeapon( const AWeapon* OldWeapon )
@@ -150,63 +150,63 @@ void ACapstoneCharacter::OnRep_CurrentWeapon( const AWeapon* OldWeapon )
 	CurrentWeaponChangeDelegate.Broadcast( CurrentWeapon, OldWeapon );
 }
 
-/// Character health and network interactions
-void ACapstoneCharacter::OnRep_CurrentHealth()
-{
-	OnHealthUpdate();
-}
-
-void ACapstoneCharacter::SetCurrentHealth( float healthValue )
-{
-	if ( GetLocalRole() == ROLE_Authority )
-	{
-		CurrentHealth = FMath::Clamp( healthValue, 0.f, MaxHealth );
-		OnHealthUpdate();
-	}
-}
-
-float ACapstoneCharacter::TakeDamage( float DamageTaken, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser )
-{
-	float damageApplied = CurrentHealth - DamageTaken;
-	SetCurrentHealth( damageApplied );
-	return damageApplied;
-}
-
-void ACapstoneCharacter::OnHealthUpdate()
-{
-	//Client-specific functionality
-	if ( IsLocallyControlled() )
-	{
-		/*FString healthMessage = FString::Printf( TEXT( "You now have %f health remaining." ), CurrentHealth );
-		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );*/
-
-		if ( CurrentHealth <= 0 )
-		{
-			FString deathMessage = FString::Printf( TEXT( "%s has been killed." ), *GetFName().ToString() );
-			GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Red, deathMessage );
-			OnRep_Ragdoll();
-			GetMesh()->SetSimulatePhysics( bIsRagdoll );
-		}
-	}
-
-	//Server-specific functionality
-	if ( GetLocalRole() == ROLE_Authority )
-	{
-		/*FString healthMessage = FString::Printf( TEXT( "%s now has %f health remaining." ), *GetFName().ToString(), CurrentHealth );
-		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );*/
-	}
-
-	//Functions that occur on all machines.
-	/*
-		Any special functionality that should occur as a result of damage or death should be placed here.
-	*/
-}
-
-void ACapstoneCharacter::OnRep_Ragdoll()
-{
-	bIsRagdoll = true;
-	GetMesh()->SetSimulatePhysics( true );
-}
+///// Character health and network interactions
+//void ACapstoneCharacter::OnRep_CurrentHealth()
+//{
+//	OnHealthUpdate();
+//}
+//
+//void ACapstoneCharacter::SetCurrentHealth( float healthValue )
+//{
+//	if ( GetLocalRole() == ROLE_Authority )
+//	{
+//		CurrentHealth = FMath::Clamp( healthValue, 0.f, MaxHealth );
+//		OnHealthUpdate();
+//	}
+//}
+//
+//float ACapstoneCharacter::TakeDamage( float DamageTaken, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser )
+//{
+//	float damageApplied = CurrentHealth - DamageTaken;
+//	SetCurrentHealth( damageApplied );
+//	return damageApplied;
+//}
+//
+//void ACapstoneCharacter::OnHealthUpdate()
+//{
+//	//Client-specific functionality
+//	if ( IsLocallyControlled() )
+//	{
+//		/*FString healthMessage = FString::Printf( TEXT( "You now have %f health remaining." ), CurrentHealth );
+//		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );*/
+//
+//		if ( CurrentHealth <= 0 )
+//		{
+//			FString deathMessage = FString::Printf( TEXT( "%s has been killed." ), *GetFName().ToString() );
+//			GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Red, deathMessage );
+//			OnRep_Ragdoll();
+//			GetMesh()->SetSimulatePhysics( bIsRagdoll );
+//		}
+//	}
+//
+//	//Server-specific functionality
+//	if ( GetLocalRole() == ROLE_Authority )
+//	{
+//		/*FString healthMessage = FString::Printf( TEXT( "%s now has %f health remaining." ), *GetFName().ToString(), CurrentHealth );
+//		GEngine->AddOnScreenDebugMessage( -1, 5.f, FColor::Blue, healthMessage );*/
+//	}
+//
+//	//Functions that occur on all machines.
+//	/*
+//		Any special functionality that should occur as a result of damage or death should be placed here.
+//	*/
+//}
+//
+//void ACapstoneCharacter::OnRep_Ragdoll()
+//{
+//	bIsRagdoll = true;
+//	GetMesh()->SetSimulatePhysics( true );
+//}
 
 //////////////////////////////////////////////////////////////////////////
 // Input
